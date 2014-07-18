@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!--This file represents the results of running a test suite-->
+<test-results name="C:\Users\gabriele\Desktop\FSCL.Compiler\tests\FSCL.Compiler.Tests\bin\Release\FSCL.Compiler.Tests.dll" total="0" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2014-07-18" time="01:20:23">
+  <environment nunit-version="2.6.3.13283" clr-version="2.0.50727.7905" os-version="Microsoft Windows NT 6.2.9200.0" platform="Win32NT" cwd="C:\Users\gabriele\Desktop\FSCL.Compiler" machine-name="GABRIELECOCFC59" user="gabriele" user-domain="GABRIELECOCFC59" />
+  <culture-info current-culture="en-US" current-uiculture="en-US" />
+  <test-suite type="Assembly" name="C:\Users\gabriele\Desktop\FSCL.Compiler\tests\FSCL.Compiler.Tests\bin\Release\FSCL.Compiler.Tests.dll" executed="True" result="Inconclusive" success="False" time="0.024" asserts="0" />
+</test-results>
