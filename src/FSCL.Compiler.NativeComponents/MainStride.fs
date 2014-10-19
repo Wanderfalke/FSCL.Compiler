@@ -9,7 +9,7 @@ open FSCL.Compiler
 [<Stride("FSCL_MAIN_STRIDE", Dependencies = [| "FSCL_PARSING_STRIDE" |])>] 
 type MainStride(tm: TypeManager,
                 steps: ICompilerStep list) = 
-    inherit CompilerStride<CompilationUnit * CompilerCache, CompilationUnit>(tm, steps)
+    inherit CompilerStride<CompilationUnit, CompilationUnit>(tm, steps)
     
     member private this.FullCompile(kmod: KernelModule, opt) =
         // Full compile
@@ -26,7 +26,8 @@ type MainStride(tm: TypeManager,
                 stop <- true
         result, stop
 
-    override this.Run((cu, cache), opt) =
+    override this.Run(cu, opt) =
+        let cache = opt.[CompilerOptions.UseCache] :?> CompilerCache
         let mutable globalResult = ContinueCompilation(cu)
         
         if cache <> null then

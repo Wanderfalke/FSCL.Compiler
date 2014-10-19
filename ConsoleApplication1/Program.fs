@@ -64,8 +64,9 @@ let VecMul2(wi:WorkItemInfo) (c:float32[]) =
 
 [<EntryPoint>]
 let main argv = 
-    Basic.Test()
-    Caching.Test()
+    //Basic.Test()
+    //Caching.Test()
+    Composition.Test()
     
     (*
     let compiler = new Compiler()

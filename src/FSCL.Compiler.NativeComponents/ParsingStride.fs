@@ -9,9 +9,9 @@ open FSCL.Compiler
 [<Stride("FSCL_PARSING_STRIDE")>] 
 type ParsingStride(tm: TypeManager,
                    steps: ICompilerStep list) = 
-    inherit CompilerStride<obj * CompilerCache, CompilationUnit * CompilerCache>(tm, steps)
+    inherit CompilerStride<obj, CompilationUnit>(tm, steps)
     
-    override this.Run((expr, cache), opt) =
+    override this.Run(expr, opt) =
         let mutable result = expr
         let mutable si = 0
         let mutable stop = false
@@ -24,9 +24,9 @@ type ParsingStride(tm: TypeManager,
                 result <- e
                 stop <- true
         if not stop then
-            ContinueCompilation((result :?> CompilationUnit, cache))
+            ContinueCompilation(result :?> CompilationUnit)
         else
-            StopCompilation((result :?> CompilationUnit, cache))
+            StopCompilation(result)
         
 
         

@@ -21,6 +21,7 @@ open System.Collections.Generic
 type Compiler = 
     inherit Pipeline
     
+    val mutable cache: CompilerCache
     static member DefaultConfigurationRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FSCL.Compiler")
     static member DefaultConfigurationComponentsFolder = "Components"
     static member DefaultConfigurationComponentsRoot = Path.Combine(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder)
@@ -43,10 +44,13 @@ type Compiler =
     ///In addition of the 0 or more components found, the native components are always loaded (if no configuration file is found in the first step)
     ///</remarks>
     ///
-    new() = 
+    new() as this = 
         { 
-            inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply)             
+            inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply)
+            cache = null
         }
+         then
+            this.cache <- new CompilerCache(this.IsInvariantToMetaCollection, fun(a,b) -> true)
     
     ///
     ///<summary>
@@ -57,8 +61,12 @@ type Compiler =
     ///An instance of the compiler configured with the input file
     ///</returns>
     ///
-    new(file: string) = 
-        { inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply, file) }
+    new(file: string) as this = 
+        { inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply, file) 
+          cache = null
+        }
+         then
+            this.cache <- new CompilerCache(this.IsInvariantToMetaCollection, fun(a,b) -> true)
     ///
     ///<summary>
     ///The constructor to instantiate a compiler with an object-based configuration
@@ -68,12 +76,17 @@ type Compiler =
     ///An instance of the compiler configured with the input configuration object
     ///</returns>
     ///
-    new(conf: PipelineConfiguration) =
-        { inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply, conf) }
+    new(conf: PipelineConfiguration) as this =
+        { 
+            inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply, conf) 
+            cache = null
+        }
+         then
+            this.cache <- new CompilerCache(this.IsInvariantToMetaCollection, fun(a,b) -> true)
 
     member this.Compile(input, opts: Dictionary<string, obj>) =
         if not (opts.ContainsKey(CompilerOptions.UseCache)) then
-            opts.Add(CompilerOptions.UseCache, this.Cache)
+            opts.Add(CompilerOptions.UseCache, this.cache)
         let r = this.Run(input, opts)
         r
         
@@ -85,11 +98,10 @@ type Compiler =
             else
                 opts.[key] <- value
         if not (opts.ContainsKey(CompilerOptions.UseCache)) then
-            opts.Add(CompilerOptions.UseCache, this.Cache)
+            opts.Add(CompilerOptions.UseCache, this.cache)
         let r = this.Run(input, opts)
         r
         
     member this.Compile(input) =
-        this.Compile(input, (CompilerOptions.UseCache, this.Cache :> obj))
+        this.Compile(input, (CompilerOptions.UseCache, this.cache :> obj))
     
-    member this.Cache = new CompilerCache(this.IsInvariantToMetaCollection, fun(a,b) -> true)

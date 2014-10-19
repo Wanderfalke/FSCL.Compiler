@@ -39,24 +39,24 @@ let Test() =
     watch.Stop()
     Console.WriteLine("Force no caching: " + ((double)(watch.ElapsedMilliseconds)/10.0).ToString() + " ms")    
     watch.Restart()
-    for i = 1 to 10 do
+    for i = 1 to 100 do
         compiler.Compile(<@ VectorAddTupled @>) |> ignore
     watch.Restart()
     Console.WriteLine("Caching: " + ((double)(watch.ElapsedMilliseconds)/10.0).ToString() + " ms")
         
     compiler.Compile(<@ VectorAddCurried @>) |> ignore
     watch.Restart()
-    for i = 1 to 10 do
+    for i = 1 to 100 do
         compiler.Compile(<@ DEVICE_TYPE(DeviceType.Accelerator, VectorAddCurried) @>) |> ignore
     watch.Stop()
     Console.WriteLine("No caching: " + ((double)(watch.ElapsedMilliseconds)/10.0).ToString() + " ms")
     watch.Restart()
-    for i = 1 to 10 do
+    for i = 1 to 100 do
         compiler.Compile(<@ VectorAddCurried @>, (CompilerOptions.UseCache, null)) |> ignore
     watch.Stop()
     Console.WriteLine("Force no caching: " + ((double)(watch.ElapsedMilliseconds)/10.0).ToString() + " ms")    
     watch.Restart()
-    for i = 1 to 10 do
+    for i = 1 to 100 do
         compiler.Compile(<@ VectorAddCurried @>) |> ignore
     watch.Stop()
     Console.WriteLine("Caching: " + ((double)(watch.ElapsedMilliseconds)/10.0).ToString() + " ms")

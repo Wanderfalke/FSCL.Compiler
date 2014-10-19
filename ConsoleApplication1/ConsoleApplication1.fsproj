@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="Basic.fs" />
     <Compile Include="Caching.fs" />
+    <Compile Include="Composition.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
   </ItemGroup>
