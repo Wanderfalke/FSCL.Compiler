@@ -1,19 +1,19 @@
-﻿namespace FSCL.Compiler.FunctionTransformation
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionTransformation
 
 open FSCL.Compiler
 open System
 open System.Reflection
 open System.Collections.Generic
 open Microsoft.FSharp.Quotations
-open FSCL.Compiler.Util.VerboseCompilationUtil
+
 
 [<assembly:DefaultComponentAssembly>]
 do()
 
 [<Step("FSCL_FUNCTION_TRANSFORMATION_STEP",
+       "FSCL_MAIN_STRIDE",
        Dependencies = [| "FSCL_FUNCTION_PREPROCESSING_STEP";
-                         "FSCL_MODULE_PREPROCESSING_STEP"; 
-                         "FSCL_MODULE_PARSING_STEP" |])>]
+                         "FSCL_MODULE_PREPROCESSING_STEP" |])>]
 type FunctionTransformationStep(tm: TypeManager, 
                                 processors:ICompilerStepProcessor list) = 
     inherit CompilerStep<KernelModule, KernelModule>(tm, processors)
@@ -45,22 +45,18 @@ type FunctionTransformationStep(tm: TypeManager,
     member this.Continue(expression: Expr) =
         this.currentProcessor.Execute(expression, this, opts) :?> Expr 
          
-    member private this.Process(f:FunctionInfo) =
+    member private this.Process(f:KernelUtilityFunctionInfo) =
         this.FunctionInfo <- f
         for p in processors do
             this.currentProcessor <- p
             this.FunctionInfo.Body <- p.Execute(this.FunctionInfo.Body, this, opts) :?> Expr 
                                   
-    override this.Run(km: KernelModule, opt) =
-        let verb = StartVerboseStep(this, opt)
-
+    override this.Run(km: KernelModule, stride, opt) =
         opts <- opt
         for f in km.Functions do
-            this.Process(f.Value :?> FunctionInfo)
+            this.Process(f.Value :?> KernelUtilityFunctionInfo)
         this.Process(km.Kernel)
         let r = ContinueCompilation(km)
-        
-        StopVerboseStep(verb)
         r
         
 

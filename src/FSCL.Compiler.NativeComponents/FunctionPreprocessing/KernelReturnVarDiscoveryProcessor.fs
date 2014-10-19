@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionPreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionPreprocessing
 
 open FSCL.Compiler
 open Microsoft.FSharp.Quotations

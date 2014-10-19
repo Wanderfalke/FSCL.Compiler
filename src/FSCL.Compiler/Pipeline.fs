@@ -14,7 +14,7 @@ open System.Collections.Generic
 ///
 [<AllowNullLiteral>]
 type Pipeline =  
-    val mutable internal steps : ICompilerStep array
+    val mutable internal strides : ICompilerStride array
     val mutable internal usedMetadata : IReadOnlyDictionary<Type, MetadataComparer list>
     val mutable internal configuration: PipelineConfiguration
     val mutable internal configurationManager: PipelineConfigurationManager
@@ -34,7 +34,7 @@ type Pipeline =
     ///</remarks>
     ///
     new(confRoot, compRoot, assemblies) as this = {
-                                                    steps = [||]
+                                                    strides = [||]
                                                     usedMetadata = null
                                                     configurationManager = new PipelineConfigurationManager(assemblies, confRoot, compRoot)
                                                     configuration = null 
@@ -42,7 +42,7 @@ type Pipeline =
                                                     then
                                                         this.configuration <- this.configurationManager.DefaultConfiguration()
                                                         let s, m = this.configurationManager.Build(this.configuration)
-                                                        this.steps <- s
+                                                        this.strides <- s
                                                         this.usedMetadata <- new Dictionary<Type, MetadataComparer list>(m)
     
     ///
@@ -55,7 +55,7 @@ type Pipeline =
     ///</returns>
     ///
     new(confRoot, compRoot, assemblies, file:string) as this = {                                                                    
-                                                                 steps = [||]
+                                                                 strides = [||]
                                                                  usedMetadata = null
                                                                  configurationManager = new PipelineConfigurationManager(assemblies, confRoot, compRoot)
                                                                  configuration = null 
@@ -63,7 +63,7 @@ type Pipeline =
                                                                 then
                                                                     this.configuration <- this.configurationManager.LoadConfiguration(file)
                                                                     let s,m = this.configurationManager.Build(this.configuration)
-                                                                    this.steps <- s
+                                                                    this.strides <- s
                                                                     this.usedMetadata <- new Dictionary<Type, MetadataComparer list>(m)
     ///
     ///<summary>
@@ -75,14 +75,14 @@ type Pipeline =
     ///</returns>
     ///
     new(confRoot, compRoot, assemblies, conf: PipelineConfiguration) as this = { 
-                                                                                 steps = [||]
+                                                                                 strides = [||]
                                                                                  usedMetadata = null
                                                                                  configurationManager = new PipelineConfigurationManager(assemblies, confRoot, compRoot)
                                                                                  configuration = conf 
                                                                                }   
                                                                                then
                                                                                    let s, m = this.configurationManager.Build(this.configuration)
-                                                                                   this.steps <- s
+                                                                                   this.strides <- s
                                                                                    this.usedMetadata <- new Dictionary<Type, MetadataComparer list>(m)
     
     ///
@@ -109,9 +109,9 @@ type Pipeline =
     /// The steps count
     ///</summary>
     ///                                                
-    member this.StepsCount 
+    member this.StridesCount 
         with get() =
-            this.steps.Length
+            this.strides.Length
             
     ///
     ///<summary>
@@ -180,8 +180,8 @@ type Pipeline =
         let mutable state = input
         let mutable stopCompilation = false
         let mutable i = 0
-        while not(stopCompilation) && i < this.steps.Length do
-            match this.steps.[i].Execute(state, opts) with
+        while not(stopCompilation) && i < this.strides.Length do
+            match this.strides.[i].Execute(state, opts) with
             | StopCompilation(r) ->
                 state <- r
                 stopCompilation <- true

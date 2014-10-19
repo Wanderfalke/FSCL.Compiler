@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionCodegen
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionCodegen
 
 open System
 open FSCL.Compiler

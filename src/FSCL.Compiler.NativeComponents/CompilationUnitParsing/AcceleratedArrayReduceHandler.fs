@@ -187,7 +187,7 @@ type AcceleratedArrayReduceHandler() =
         r2
 
     interface IAcceleratedCollectionHandler with
-        member this.Process(methodInfo, cleanArgs, root, meta, step) =       
+        member this.Process(methodInfo, cleanArgs, root, meta, step, isRoot) =       
             (*
                 Array map looks like: Array.map fun collection
                 At first we check if fun is a lambda (first argument)
@@ -224,7 +224,7 @@ type AcceleratedArrayReduceHandler() =
                 // Check device target
                 let targetType = meta.KernelMeta.Get<DeviceTypeAttribute>()
             
-                let kModule = 
+                let kModule, cleanArgs = 
                     // GPU CODE
                     match targetType.Type with
                     | DeviceType.Gpu ->                    
@@ -282,9 +282,20 @@ type AcceleratedArrayReduceHandler() =
                                                               finalKernel, 
                                                               meta, 
                                                               name, appliedFunctionBody)
-                        let kernelModule = new KernelModule(kInfo, cleanArgs)
                         
-                        kernelModule                
+                        let kernelModule = new KernelModule(kInfo)       
+                                                                               
+                        // Return flow graph node                             
+                        let node = new KernelFlowGraphNode(kernelModule, None, Some(cleanArgs), isRoot)
+
+                        // Recursive processing
+                        let nodeChildren = new Dictionary<string, ICompilationFlowGraphNode>()
+                        for i = 0 to cleanArgs.Length - 1 do                    
+                            let child = step.Process(cleanArgs.[i], false)
+                            if child.IsSome then
+                                node.Input.Add(methodParams.[i].Name, child.Value)
+                        
+                        node, cleanArgs                
                     |_ ->
                         // CPU CODE                                                              
                         let signature, name, appliedFunctionBody =    
@@ -341,34 +352,45 @@ type AcceleratedArrayReduceHandler() =
                                                                 finalKernel, 
                                                                 meta, 
                                                                 name, appliedFunctionBody)
-                        let kernelModule = new KernelModule(kInfo, cleanArgs)
                         
-                        kernelModule 
+                        let kernelModule = new KernelModule(kInfo)       
+                                                                               
+                        // Return flow graph node                             
+                        let node = new KernelFlowGraphNode(kernelModule, None, Some(cleanArgs), isRoot)
+
+                        // Recursive processing
+                        let nodeChildren = new Dictionary<string, ICompilationFlowGraphNode>()
+                        for i = 0 to cleanArgs.Length - 1 do                    
+                            let child = step.Process(cleanArgs.[i], false)
+                            if child.IsSome then
+                                node.Input.Add(methodParams.[i].Name, child.Value)
+                        
+                        node, cleanArgs
 
                 // Add applied function      
                 match computationFunction with
                 | Some(functionInfo, functionParamVars, body) ->
-                    let reduceFunctionInfo = new FunctionInfo(functionInfo, 
-                                                              functionInfo.GetParameters() |> List.ofArray,
-                                                              functionParamVars,
-                                                              None,
-                                                              body, lambda.IsSome)
+                    let reduceFunctionInfo = new KernelUtilityFunctionInfo(functionInfo, 
+                                                                           functionInfo.GetParameters() |> List.ofArray,
+                                                                           functionParamVars,
+                                                                           body,
+                                                                           lambda.IsSome)
                 
                     // Store the called function (runtime execution will use it to perform latest iterations of reduction)
                     if lambda.IsSome then
-                        kModule.Kernel.CustomInfo.Add("ReduceFunction", lambda.Value)
+                        kModule.Content.CustomInfo.Add("ReduceFunction", lambda.Value)
                     else
                         // ExtractComputationFunction may have lifted some paramters that are referencing stuff outside the quotation, so 
                         // a new methodinfo is generated with no body. So we can't invoke it, and therefore we add as ReduceFunction the body instead of the methodinfo
-                        kModule.Kernel.CustomInfo.Add("ReduceFunction", match computationFunction.Value with a, _, b -> b)
+                        kModule.Content.CustomInfo.Add("ReduceFunction", match computationFunction.Value with a, _, b -> b)
                                     
                     // Store the called function (runtime execution will use it to perform latest iterations of reduction)
-                    kModule.Functions.Add(reduceFunctionInfo.ID, reduceFunctionInfo)
+                    kModule.Content.Functions.Add(reduceFunctionInfo.ID, reduceFunctionInfo)
                 | _ ->
                     // Array.sum: reduce function in (+)
-                    kModule.Kernel.CustomInfo.Add("ReduceFunction", 
-                                                  QuotationAnalysis.ExtractMethodFromExpr(<@ (+) @>).Value.GetGenericMethodDefinition().MakeGenericMethod([| inputArrayType.GetElementType(); inputArrayType.GetElementType();  outputArrayType.GetElementType() |]))
+                    kModule.Content.CustomInfo.Add("ReduceFunction", 
+                                                   QuotationAnalysis.ExtractMethodFromExpr(<@ (+) @>).Value.GetGenericMethodDefinition().MakeGenericMethod([| inputArrayType.GetElementType(); inputArrayType.GetElementType();  outputArrayType.GetElementType() |]))
                 // Return module                             
-                Some(kModule)
+                Some(kModule :> ICompilationFlowGraphNode)
             else
                 None

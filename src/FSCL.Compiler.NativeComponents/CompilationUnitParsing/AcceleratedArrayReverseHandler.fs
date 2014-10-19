@@ -15,7 +15,7 @@ open Microsoft.FSharp.Linq.RuntimeHelpers
 
 type AcceleratedArrayReverseHandler() =
     interface IAcceleratedCollectionHandler with
-        member this.Process(methodInfo, cleanArgs, root, meta, step) =
+        member this.Process(methodInfo, cleanArgs, root, meta, step, isRoot) =
             // We need to get the type of a array whose elements type is the same of the functionInfo parameter
             let inputArrayType = 
                     methodInfo.GetParameters().[0].ParameterType
@@ -74,7 +74,8 @@ type AcceleratedArrayReverseHandler() =
                                                     kernelBody,
                                                     meta, 
                                                     functionName, None)
-            let kernelModule = new KernelModule(kInfo, cleanArgs)
+            let kernelModule = new KernelModule(kInfo)
+            let kernelNode = new KernelFlowGraphNode(kernelModule, None, Some(cleanArgs), isRoot)
                                 
             // Return module                             
-            Some(kernelModule)
+            Some(kernelNode :> ICompilationFlowGraphNode)

@@ -44,21 +44,44 @@ let VectorAddWithUtility(a: float32[], b:float32[], c:float32[], wi:WorkItemInfo
 let VectorAddWithNestedUtility(a: float32[], b:float32[], c:float32[], wi:WorkItemInfo) =   
     let gid = wi.GlobalID(0)
     c.[gid] <- sumElementsNested(a, b, gid)
+    
+[<ReflectedDefinition>]
+let VecAdd(wi:WorkItemInfo) (a: float32[]) (b:float32[]) (c:float32[]) =
+    let gid = wi.GlobalID(0)
+    c.[gid] <- a.[gid] + b.[gid]
+    c
+    
+[<ReflectedDefinition>]
+let VecMul(wi:WorkItemInfo) (a: float32[]) (b:float32[]) (c:float32[]) =
+    let gid = wi.GlobalID(0)
+    c.[gid] <- a.[gid] * b.[gid]
+    
+    
+[<ReflectedDefinition>]
+let VecMul2(wi:WorkItemInfo) (c:float32[]) =
+    let gid = wi.GlobalID(0)
+    c.[gid] <- c.[gid] * c.[gid]
 
 [<EntryPoint>]
 let main argv = 
-    printfn "%A" argv
+    Basic.Test()
+    Caching.Test()
     
+    (*
     let compiler = new Compiler()
     let a = Array.create 64 1.0f
     let b = Array.create 64 1.0f
     let c = Array.zeroCreate<float32> 64
     let size = new WorkSize(64L, 64L)
-    let result = compiler.Compile(<@ VectorAddWithNestedUtility(a, b, c, size) @>) :?> IKernelModule
+    //let result = compiler.Compile(<@ VectorAddWithNestedUtility(a, b, c, size) @>) :?> IKernelModule
     //printf "%s\n" (result.Code.Value.ToString())
     // Work item info should be stored
     
     let size = new WorkSize(64L, 64L)
+    
+    let result3 = compiler.Compile(<@ (a,b,c) |||> VecAdd size  @>) :?> IKernelModule
+
+
     let result = compiler.Compile(<@ VectorAddWithUtility(a, b, c, size) @>) :?> IKernelModule
 
     let a = Array.create 64 1.0f
@@ -71,4 +94,5 @@ let main argv =
     let result = compiler.Compile(<@ Array.reduce (fun e1 e2 -> 
                                                         let ret = { x = e1.x + e2.x; y = e1.y + e2.y }
                                                         ret) a @>) :?> IKernelModule
+                                                        *)
     0 // return an integer exit code

@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionTransformation
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionTransformation
 
 open System
 open FSCL.Compiler

@@ -1,21 +1,21 @@
-﻿namespace FSCL.Compiler.FunctionCodegen
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionCodegen
 
 open System
 open System.Reflection
 open System.Collections.Generic
 open Microsoft.FSharp.Quotations
 open FSCL.Compiler
-open FSCL.Compiler.Util.VerboseCompilationUtil
+
 
 [<assembly:DefaultComponentAssembly>]
 do()
 
 [<Step("FSCL_FUNCTION_CODEGEN_STEP",
-      Dependencies = [| "FSCL_FUNCTION_TRANSFORMATION_STEP";
-                        "FSCL_FUNCTION_PREPROCESSING_STEP";
-                        "FSCL_FUNCTION_POSTPROCESSING_STEP";
-                        "FSCL_MODULE_PREPROCESSING_STEP";
-                        "FSCL_MODULE_PARSING_STEP" |])>]
+       "FSCL_MAIN_STRIDE",
+       Dependencies = [| "FSCL_FUNCTION_TRANSFORMATION_STEP";
+                         "FSCL_FUNCTION_PREPROCESSING_STEP";
+                         "FSCL_FUNCTION_POSTPROCESSING_STEP";
+                         "FSCL_MODULE_PREPROCESSING_STEP" |])>]
 ///
 ///<summary>
 ///The function codegen step, whose behavior is generating the target OpenCL code for a given kernel or function, including signature and body
@@ -80,7 +80,7 @@ type FunctionCodegenStep(tm: TypeManager,
     member this.Continue(expression: Expr) =
         this.Process(expression)
         
-    member private this.Process(f:FunctionInfo) =
+    member private this.Process(f:KernelUtilityFunctionInfo) =
         this.FunctionInfo <- f
         let processedSignature = this.Process(this.FunctionInfo.ParsedSignature.Name, this.FunctionInfo.Parameters)
         let processedBody = this.Process(this.FunctionInfo.Body)
@@ -95,13 +95,12 @@ type FunctionCodegenStep(tm: TypeManager,
     ///The modified kernel module
     ///</returns>
     ///       
-    override this.Run(km: KernelModule, opt) =    
-        let verb = StartVerboseStep(this, opt)
+    override this.Run(km: KernelModule, stride, opt) =    
         if not (opt.ContainsKey(CompilerOptions.NoCodegen)) then
             opts <- opt            
             // Process functions
             for f in km.Functions do
-                this.Process(f.Value :?> FunctionInfo)
+                this.Process(f.Value :?> KernelUtilityFunctionInfo)
             // Process kernel
             this.Process(km.Kernel)
             // Process defines
@@ -114,7 +113,6 @@ type FunctionCodegenStep(tm: TypeManager,
                     ()
          
         let r = ContinueCompilation(km)
-        StopVerboseStep(verb)
         r
 
 

@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.ModuleCodegen
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.ModuleCodegen
 
 open FSCL.Compiler
 open System.Collections.Generic
@@ -33,7 +33,7 @@ type ModuleCodegen() =
 
         let structs = km.GlobalTypes
         let pstructs = String.concat "\n" (Seq.map (fun (s: Type) -> PrintStructDefinition(s, engine)) structs)
-        let functionDecls = String.concat "\n" (Seq.map (fun (f: KeyValuePair<FunctionInfoID, IFunctionInfo>) -> f.Value.SignatureCode + ";") (km.Functions))
-        let functionDefs = String.concat "\n" (Seq.map (fun (f: KeyValuePair<FunctionInfoID, IFunctionInfo>) -> f.Value.Code) (km.Functions))
+        let functionDecls = String.concat "\n" (Seq.map (fun (f: KeyValuePair<FunctionInfoID, IKernelUtilityFunctionInfo>) -> f.Value.SignatureCode + ";") (km.Functions))
+        let functionDefs = String.concat "\n" (Seq.map (fun (f: KeyValuePair<FunctionInfoID, IKernelUtilityFunctionInfo>) -> f.Value.Code) (km.Functions))
         let kernels = km.Kernel.Code
         String.concat "\n" [directives; defines; pstructs; functionDecls; functionDefs; kernels]

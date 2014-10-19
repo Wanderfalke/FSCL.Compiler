@@ -4,7 +4,7 @@ open FSCL
 open FSCL.Compiler
 open FSCL.Language
 open FSCL.Compiler.Util
-open FSCL.Compiler.ModuleParsing
+open FSCL.Compiler.NativeComponents.ParsingStride.CompilationUnitParsing
 open System.Collections.Generic
 open System.Reflection
 open System.Reflection.Emit
@@ -28,13 +28,13 @@ type DeviceTypeMetadataComparer() =
             true
 
 [<StepProcessor("FSCL_ACCELERATED_ARRAY_META_FILTERING_PROCESSOR", 
-                "FSCL_MODULE_PARSING_STEP")>]
+                "FSCL_CU_PARSING_STEP")>]
 [<UseMetadata(typeof<DeviceTypeAttribute>, typeof<DeviceTypeMetadataComparer>)>] 
 type AcceleratedArrayMetaFiltering() = 
     inherit MetadataFinalizerProcessor()
     
     override this.Run((kmeta, rmeta, pmeta, info), s, opts) =
-        let step = s :?> ModuleParsingStep
+        let step = s :?> CompilationUnitParsingStep
         if info <> null && info.ContainsKey("AcceleratedCollection") then            
             // Prepare params meta
             match info.["AcceleratedCollection"] :?> string with

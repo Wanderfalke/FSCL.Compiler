@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionPreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionPreprocessing
 
 open FSCL.Compiler
 open FSCL.Language
@@ -16,7 +16,7 @@ open System.Runtime.InteropServices
     
 type LocalVarsDictionaryProcessor() =
     inherit FunctionPreprocessingProcessor()
-    member private this.AddDynamicArrayParameter(step: FunctionPreprocessingStep, kernel:FunctionInfo, var:Var, allocationArgs:Expr array) =
+    member private this.AddDynamicArrayParameter(step: FunctionPreprocessingStep, kernel:KernelUtilityFunctionInfo, var:Var, allocationArgs:Expr array) =
         if (var.IsMutable) then
             raise (new CompilerException("A kernel dynamic array must be immutable"))
                    

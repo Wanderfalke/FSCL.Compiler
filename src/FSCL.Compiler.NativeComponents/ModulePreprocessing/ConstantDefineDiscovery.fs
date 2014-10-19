@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.ModulePreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.ModulePreprocessing
 
 open FSCL.Compiler
 open FSCL.Language

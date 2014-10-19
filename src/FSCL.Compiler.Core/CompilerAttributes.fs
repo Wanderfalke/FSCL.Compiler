@@ -4,18 +4,51 @@ open System
 
 ///
 ///<summary>
+///The attribute used to describe a compiler pipeline
+///</summary>
+/// 
+[<AllowNullLiteral>]
+type StrideAttribute(i: string) =
+    inherit Attribute()    
+    ///
+    ///<summary>
+    ///The global ID of the pipeline
+    ///</summary>
+    /// 
+    member val ID = i with get
+    ///
+    ///<summary>
+    ///The set of dependencies (i.e. the set of pipelines that must be executed before this one)
+    ///</summary>
+    /// 
+    member val Dependencies: string array = [||] with get, set
+    ///
+    ///<summary>
+    ///The set of pipeline that must be executed after this one
+    ///</summary>
+    /// 
+    member val Before: string array = [||] with get, set
+
+///
+///<summary>
 ///The attribute used to describe a compiler step
 ///</summary>
 /// 
 [<AllowNullLiteral>]
-type StepAttribute(i: string) =
+type StepAttribute(i: string, p: string) =
     inherit Attribute()    
     ///
     ///<summary>
     ///The global ID of the step
     ///</summary>
     /// 
-    member val ID = i with get
+    member val ID = i with get    
+    ///
+    ///<summary>
+    ///The ID of the pipeline
+    ///</summary>
+    /// 
+    member val Stride = p with get
     ///
     ///<summary>
     ///The set of dependencies (i.e. the set of steps that must be executed before this one)

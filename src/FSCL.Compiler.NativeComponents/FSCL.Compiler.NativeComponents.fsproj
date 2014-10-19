@@ -48,20 +48,8 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
   <ItemGroup>
-    <Compile Include="ModuleParsing\ModuleParsingStep.fs" />
-    <Compile Include="ModuleParsing\AcceleratedKernelInfo.fs" />
-    <Compile Include="ModuleParsing\AcceleratedCollectionHandler.fs" />
-    <Compile Include="ModuleParsing\AcceleratedCollectionUtil.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayMetaFiltering.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayMapHandler.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayMap2Handler.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayReduceHandler.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayReverseHandler.fs" />
-    <Compile Include="ModuleParsing\AcceleratedArrayParser.fs" />
-    <Compile Include="ModuleParsing\KernelCallExpressionParser.fs" />
-    <Compile Include="ModuleParsing\KernelLambdaParser.fs" />
-    <Compile Include="ModuleParsing\KernelMethodInfoParser.fs" />
-    <Compile Include="ModuleParsing\KernelReferenceParser.fs" />
+    <Compile Include="ParsingStride.fs" />
+    <Compile Include="MainStride.fs" />
     <Compile Include="ModulePreprocessing\ModulePreprocessingStep.fs" />
     <Compile Include="ModulePreprocessing\ConstantDefineDiscovery.fs" />
     <Compile Include="ModulePreprocessing\FunctionReferenceDiscover.fs" />
@@ -111,6 +99,18 @@
     <Compile Include="TypeHandlers\RefVariableTypeHandler.fs" />
     <Compile Include="TypeHandlers\StructTypeHandler.fs" />
     <Compile Include="TypeHandlers\VectorTypeHandler.fs" />
+    <Compile Include="CompilationUnitParsing\CompilationUnitParsingStep.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedCollectionUtil.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedKernelInfo.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayMetaFiltering.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedCollectionHandler.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayMapHandler.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayMap2Handler.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayReduceHandler.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayReverseHandler.fs" />
+    <Compile Include="CompilationUnitParsing\AcceleratedArrayParser.fs" />
+    <Compile Include="CompilationUnitParsing\KernelCallExpressionParser.fs" />
+    <Compile Include="CompilationUnitParsing\KernelReferenceExpressionParser.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

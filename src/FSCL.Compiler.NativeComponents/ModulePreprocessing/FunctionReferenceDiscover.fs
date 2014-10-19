@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.ModulePreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.ModulePreprocessing
 
 open FSCL.Compiler
 open FSCL.Compiler.Util
@@ -13,8 +13,8 @@ open System
 type FunctionReferenceDiscover() =      
     inherit ModulePreprocessingProcessor()
 
-    let DiscoverFunctionRef(k:FunctionInfo) =
-        let foundFunctions = Dictionary<MethodInfo, FunctionInfo>()
+    let DiscoverFunctionRef(k:KernelUtilityFunctionInfo) =
+        let foundFunctions = Dictionary<MethodInfo, KernelUtilityFunctionInfo>()
 
         let rec DiscoverFunctionRefInner(expr) =
             match expr with
@@ -36,11 +36,10 @@ type FunctionReferenceDiscover() =
                                                             paramVars.Add(p)
                                                             paramInfos.Add(methodParams.[i])
                                                             workItemInfo := Some(args.[i]))
-                                foundFunctions.Add(mi, new FunctionInfo(mi, 
-                                                                        paramInfos |> List.ofSeq, 
-                                                                        paramVars |> List.ofSeq,
-                                                                        workItemInfo.Value,
-                                                                        b, false))
+                                foundFunctions.Add(mi, new KernelUtilityFunctionInfo(mi, 
+                                                                                     paramInfos |> List.ofSeq, 
+                                                                                     paramVars |> List.ofSeq,
+                                                                                     b, false))
                             | _ ->
                                 ()
                     | _ ->
@@ -61,7 +60,7 @@ type FunctionReferenceDiscover() =
         let engine = en :?> ModulePreprocessingStep
         // Discover functions referenced from kernel
         let mutable functionsToAnalyse = DiscoverFunctionRef(m.Kernel)
-        let mutable newFunctionsFound = new Dictionary<MethodInfo, FunctionInfo>()
+        let mutable newFunctionsFound = new Dictionary<MethodInfo, KernelUtilityFunctionInfo>()
 
         let mutable foundSomethingNew = true
         while foundSomethingNew do
@@ -76,7 +75,7 @@ type FunctionReferenceDiscover() =
             for item in functionsToAnalyse do
                 m.Functions.Add(item.Value.ID, item.Value)
             functionsToAnalyse <- newFunctionsFound
-            newFunctionsFound <- new Dictionary<MethodInfo, FunctionInfo>()
+            newFunctionsFound <- new Dictionary<MethodInfo, KernelUtilityFunctionInfo>()
 
 
 

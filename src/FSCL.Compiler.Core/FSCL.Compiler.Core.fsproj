@@ -52,9 +52,8 @@
     <Compile Include="Options.fs" />
     <Compile Include="Metadata.fs" />
     <Compile Include="Exceptions.fs" />
-    <Compile Include="KernelParameterInfo.fs" />
-    <Compile Include="KernelInfo.fs" />
-    <Compile Include="KernelModule.fs" />
+    <Compile Include="ReadOnlyCoreStructures.fs" />
+    <Compile Include="CoreStructures.fs" />
     <Compile Include="TypeManager.fs" />
     <Compile Include="CompilerAttributes.fs" />
     <Compile Include="CompilerStep.fs" />

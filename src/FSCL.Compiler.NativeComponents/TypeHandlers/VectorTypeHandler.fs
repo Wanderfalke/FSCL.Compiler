@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.Types
+﻿namespace FSCL.Compiler.NativeComponents.TypeHandlers
 
 open System
 open FSCL

@@ -1,8 +1,7 @@
-﻿namespace FSCL.Compiler.ModulePreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.ModulePreprocessing
 
 open FSCL.Compiler
 open FSCL
-open FSCL.Compiler.ModulePreprocessing
 open System.Reflection.Emit
 open System.Collections.Generic
 open System.Reflection

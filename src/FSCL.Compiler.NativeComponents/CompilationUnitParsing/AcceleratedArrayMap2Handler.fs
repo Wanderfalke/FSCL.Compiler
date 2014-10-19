@@ -15,7 +15,7 @@ open Microsoft.FSharp.Linq.RuntimeHelpers
 
 type AcceleratedArrayMap2Handler() =
     interface IAcceleratedCollectionHandler with
-        member this.Process(methodInfo, cleanArgs, root, meta, step) =
+        member this.Process(methodInfo, cleanArgs, root, meta, step, isRoot: bool) =
                        
             (*
                 Array map looks like: Array.map fun collection
@@ -121,19 +121,28 @@ type AcceleratedArrayMap2Handler() =
                                                       [ methodParams.[0]; methodParams.[1]; methodParams.[2] ],
                                                       [ input1Holder; input2Holder; outputHolder ],
                                                       kernelBody,
-                                                      meta, 
+                                                      meta,
                                                       "Array.map2", Some(functionBody))
-                let kernelModule = new KernelModule(kInfo, cleanArgs)
+                let kernelModule = new KernelModule(kInfo)
                 
                 // Add the current kernel
-                let mapFunctionInfo = new FunctionInfo(functionInfo, 
-                                                       functionInfo.GetParameters() |> List.ofArray, 
-                                                       functionParamVars,
-                                                       None,
-                                                       functionBody, lambda.IsSome)
+                let mapFunctionInfo = new KernelUtilityFunctionInfo(functionInfo, 
+                                                                    functionInfo.GetParameters() |> List.ofArray, 
+                                                                    functionParamVars,
+                                                                    functionBody, 
+                                                                    lambda.IsSome)
                 kernelModule.Functions.Add(mapFunctionInfo.ID, mapFunctionInfo)
                 
-                // Return module                             
-                Some(kernelModule)
+                // Return flow graph node                             
+                let node = new KernelFlowGraphNode(kernelModule, None, Some(cleanArgs), isRoot)
+
+                // Recursive processing
+                let nodeChildren = new Dictionary<string, ICompilationFlowGraphNode>()
+                for i = 0 to cleanArgs.Length - 1 do                    
+                    let child = step.Process(cleanArgs.[i], false)
+                    if child.IsSome then
+                        node.Input.Add(methodParams.[i].Name, child.Value)
+
+                Some(node :> ICompilationFlowGraphNode)                
             | _ ->
                 None

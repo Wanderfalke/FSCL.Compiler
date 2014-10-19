@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionPreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionPreprocessing
 
 open FSCL.Compiler
 open FSCL.Language
@@ -21,7 +21,7 @@ type FunctionCallSignatureFixProcessor() =
     let GenerateSizeAdditionalArg (name:string, n:obj) =
          String.Format("{0}_length_{1}", name, n.ToString())
 
-    member private this.AddDynamicArrayParameter(step: FunctionPreprocessingStep, kernel:FunctionInfo, var:Var, allocationArgs:Expr array) =
+    member private this.AddDynamicArrayParameter(step: FunctionPreprocessingStep, kernel:KernelUtilityFunctionInfo, var:Var, allocationArgs:Expr array) =
         if (var.IsMutable) then
             raise (new CompilerException("A kernel dynamic array must be immutable"))
                    
@@ -35,7 +35,7 @@ type FunctionCallSignatureFixProcessor() =
                                           None)
         kernelInfo.GeneratedParameters.Add(pInfo)
        
-    member private this.FixSignatures(expr:Expr, step:FunctionPreprocessingStep, functionInfo:FunctionInfo) =
+    member private this.FixSignatures(expr:Expr, step:FunctionPreprocessingStep, functionInfo:KernelUtilityFunctionInfo) =
         match expr with
         | Patterns.Call(o, mi, a) ->
             if mi.ReflectedType <> null then

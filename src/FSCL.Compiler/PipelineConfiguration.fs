@@ -27,14 +27,14 @@ type ComponentSource =
 ///A step configuration contains all the information about a step that must be provided when the step is specified in a configuration file or object
 ///</remarks>
 ///
-type StepConfiguration(i: string, t: Type, ?dependencies: string array, ?before: string array, ?metadata: (Type * MetadataComparer) array) =
+type ComponentConfiguration(i: string, t: Type, dependencies: string array, before: string array, metadata: (Type * MetadataComparer) array) =
     ///
     ///<summary>
     ///The ID of the step
     ///</summary>
     ///
     new() = 
-        new StepConfiguration("", typeof<Object>, [||], [||])
+        new ComponentConfiguration("", typeof<Object>, [||], [||], [||])
 
     member val ID = i with get
     ///
@@ -42,26 +42,26 @@ type StepConfiguration(i: string, t: Type, ?dependencies: string array, ?before:
     ///The step dependencies. See <see cref="FSCL.Compiler.StepAttribute"/>
     ///</summary>
     ///
-    member val Dependencies = if dependencies.IsSome then dependencies.Value else [||] with get
+    member val Dependencies = dependencies
     ///
     ///<summary>
     ///The set of steps that must be executed after this
     ///</summary>
     ///
-    member val Before = if before.IsSome then before.Value else [||] with get
+    member val Before = before
     ///
     ///<summary>
     ///The set of metadata that affect the result of this step
     ///</summary>
     /// 
-    member val UsedMetadata = if metadata.IsSome then metadata.Value else [||] with get
+    member val UsedMetadata = metadata
     ///
     ///<summary>
     ///The runtime .NET type of the step
     ///</summary>
     ///
     member val Type = t with get
-    member internal this.ToXml() =
+    member this.ToXml() =
         let el = new XElement(XName.Get(this.GetType().Name),
                     new XAttribute(XName.Get("ID"), this.ID),
                     new XAttribute(XName.Get("Type"), this.Type.FullName),
@@ -100,15 +100,15 @@ type StepConfiguration(i: string, t: Type, ?dependencies: string array, ?before:
                 let metaT = asm.GetType(metaType);
                 let comparerT = asm.GetType(comparerType)
                 meta.Add(metaT, Activator.CreateInstance(comparerT) :?> MetadataComparer) 
-        StepConfiguration(el.Attribute(XName.Get("ID")).Value, 
-                          a.GetType(el.Attribute(XName.Get("Type")).Value), 
-                          deps.ToArray(), bef.ToArray(), meta.ToArray())
+        ComponentConfiguration(el.Attribute(XName.Get("ID")).Value,
+                              a.GetType(el.Attribute(XName.Get("Type")).Value), 
+                              deps.ToArray(), bef.ToArray(), meta.ToArray())
 
     override this.Equals(o) =
         if o.GetType() <> this.GetType() then
             false
         else
-            let oth = o :?> StepConfiguration
+            let oth = o :?> ComponentConfiguration
             let equal = ref(this.ID = oth.ID && this.Type = oth.Type && this.Dependencies.Length = oth.Dependencies.Length && this.Before.Length = oth.Before.Length && this.UsedMetadata.Length = oth.UsedMetadata.Length)
             if !equal then
                 Array.iter (fun (item1:string) ->
@@ -123,177 +123,112 @@ type StepConfiguration(i: string, t: Type, ?dependencies: string array, ?before:
         let depString = this.Dependencies |> String.concat ";"
         let befString = this.Before |> String.concat ";"
         this.Type.GetHashCode() + this.ID.GetHashCode() + depString.GetHashCode() + befString.GetHashCode()
+    
+///
+///<summary>
+///Configuration of a compiler step
+///</summary>
+///<remarks>
+///A step configuration contains all the information about a step that must be provided when the step is specified in a configuration file or object
+///</remarks>
+///
+type StrideConfiguration(i: string, t: Type, dependencies: string array, before: string array, metadata: (Type * MetadataComparer) array) =
+    inherit ComponentConfiguration(i, t, dependencies, before, metadata)
+    ///
+    ///<summary>
+    ///The ID of the step
+    ///</summary>
+    ///
+    new() = 
+        new StrideConfiguration("", typeof<Object>, [||], [||], [||])
+    static member internal FromXml(el:XElement, a:Assembly) =
+        let comp = ComponentConfiguration.FromXml(el, a)
+        StrideConfiguration(comp.ID,
+                            comp.Type, 
+                            comp.Dependencies, comp.Before, comp.UsedMetadata)
+
+///
+///<summary>
+///Configuration of a compiler step
+///</summary>
+///<remarks>
+///A step configuration contains all the information about a step that must be provided when the step is specified in a configuration file or object
+///</remarks>
+///
+type StepConfiguration(i: string, stride: string, t: Type, dependencies: string array, before: string array, metadata: (Type * MetadataComparer) array) =
+    inherit ComponentConfiguration(i, t, dependencies, before, metadata)
+    ///
+    ///<summary>
+    ///The ID of the step
+    ///</summary>
+    ///
+    new() = 
+        new StepConfiguration("", "", typeof<Object>, [||], [||], [||])
+
+    member val Stride = stride with get
+    member internal this.ToXml() =
+        let el = base.ToXml()
+        el.Add(new XAttribute(XName.Get("Stride"), this.Stride))
+        el
+    static member internal FromXml(el:XElement, a:Assembly) =
+        let comp = ComponentConfiguration.FromXml(el, a)
+        StepConfiguration(comp.ID,
+                          el.Attribute(XName.Get("Stride")).Value, 
+                          comp.Type, 
+                          comp.Dependencies, comp.Before, comp.UsedMetadata)
+
+    override this.Equals(o) =
+        base.Equals(o) && (o :? StepConfiguration) && (this.Stride = (o :?> StepConfiguration).Stride)
+
+    override this.GetHashCode() =
+        base.GetHashCode() + this.Stride.GetHashCode()
             
 ///
 ///<summary>
 ///Configuration of a compiler step processor
 ///</summary>
 ///
-type StepProcessorConfiguration(i: string, s: string, t: Type, ?dependencies, ?before, ?metadata: (Type * MetadataComparer) array) =
+type StepProcessorConfiguration(i: string, step: string, t: Type, dependencies, before, metadata: (Type * MetadataComparer) array) =
+    inherit ComponentConfiguration(i, t, dependencies, before, metadata)
     ///
     ///<summary>
-    ///The ID of the step processors
+    ///The ID of the step
     ///</summary>
     ///
-    member val ID = i with get
-    ///
-    ///<summary>
-    ///The step processors dependencies. See <see cref="FSCL.Compiler.StepProcessorAttribute"/>
-    ///</summary>
-    ///
-    member val Dependencies = if dependencies.IsSome then dependencies.Value else [||] with get
-    ///
-    ///<summary>
-    ///The set of processors that must be executed after this
-    ///</summary>
-    ///
-    member val Before = if before.IsSome then before.Value else [||] with get
-    ///
-    ///<summary>
-    ///The runtime .NET type of the step processor
-    ///</summary>
-    ///
-    member val Step = s with get
-    ///
-    ///<summary>
-    ///The set of metadata that affect the result of this step
-    ///</summary>
-    /// 
-    member val UsedMetadata = if metadata.IsSome then metadata.Value else [||] with get
-    ///
-    ///<summary>
-    ///The runtime .NET type of the step
-    ///</summary>
-    ///
-    member val Type = t with get
+    new() = 
+        new StepProcessorConfiguration("", "", typeof<Object>, [||], [||], [||])
 
-    member internal this.ToXml() =
-        let el = new XElement(XName.Get(this.GetType().Name),
-                    new XAttribute(XName.Get("ID"), this.ID),
-                    new XAttribute(XName.Get("Step"), this.Step),
-                    new XAttribute(XName.Get("Type"), this.Type.FullName),
-                    new XElement(XName.Get("Dependencies"),
-                        Array.ofSeq(seq {
-                            for item in this.Dependencies do
-                                yield XElement(XName.Get("Item"), XAttribute(XName.Get("ID"), item))
-                        })),
-                    new XElement(XName.Get("Before"),
-                        Array.ofSeq(seq {
-                            for item in this.Before do
-                                yield XElement(XName.Get("Item"), XAttribute(XName.Get("ID"), item))
-                        })),                        
-                    new XElement(XName.Get("UsedMetadata"),
-                        Array.ofSeq(seq {
-                            for item in this.UsedMetadata do
-                                yield XElement(XName.Get("Item"),
-                                    XAttribute(XName.Get("Type"), fst(item).ToString()),
-                                    XAttribute(XName.Get("Comparer"), snd(item).GetType().ToString()))
-                        })))
+    member val Step = step with get
+    member this.ToXml() =
+        let el = base.ToXml()
+        el.Add(new XAttribute(XName.Get("Step"), this.Step))
         el
-
     static member internal FromXml(el:XElement, a:Assembly) =
-        let deps = List<string>()
-        let bef = List<string>()
-        let meta = List<Type * MetadataComparer>()
-        for d in el.Elements(XName.Get("Dependencies")) do
-            for item in d.Elements(XName.Get("Item")) do
-                deps.Add(item.Attribute(XName.Get("ID")).Value)
-        for d in el.Elements(XName.Get("Before")) do
-            for item in d.Elements(XName.Get("Item")) do
-                bef.Add(item.Attribute(XName.Get("ID")).Value)
-        for d in el.Elements(XName.Get("UsedMetadata")) do
-            for item in d.Elements(XName.Get("Item")) do
-                let metaType, comparerType = item.Attribute(XName.Get("Type")).Value, item.Attribute(XName.Get("Comparer")).Value
-                let asm = Assembly.GetExecutingAssembly();
-                let metaT = asm.GetType(metaType);
-                let comparerT = asm.GetType(comparerType)
-                meta.Add(metaT, Activator.CreateInstance(comparerT) :?> MetadataComparer) 
-        StepProcessorConfiguration(el.Attribute(XName.Get("ID")).Value, 
+        let comp = ComponentConfiguration.FromXml(el, a)
+        StepProcessorConfiguration(comp.ID,
                                    el.Attribute(XName.Get("Step")).Value, 
-                                   a.GetType(el.Attribute(XName.Get("Type")).Value), 
-                                   deps.ToArray(), bef.ToArray(), meta.ToArray())
+                                   comp.Type, 
+                                   comp.Dependencies, comp.Before, comp.UsedMetadata)
 
     override this.Equals(o) =
-        if o.GetType() <> this.GetType() then
-            false
-        else
-            let oth = o :?> StepProcessorConfiguration
-            let equal = ref(this.ID = oth.ID && this.Type = oth.Type && this.Step = oth.Step && this.Dependencies.Length = oth.Dependencies.Length && this.Before.Length = oth.Before.Length && this.UsedMetadata.Length = oth.UsedMetadata.Length)
-            if !equal then
-                Array.iter (fun (item1:string) ->
-                    equal := !equal && (Array.tryFind(fun (item2:string) ->
-                                        item1 = item2) oth.Dependencies).IsSome) this.Dependencies
-            if !equal then
-                Array.iter (fun (item1:string) ->
-                    equal := !equal && (Array.tryFind(fun (item2:string) ->
-                                        item1 = item2) oth.Before).IsSome) this.Before
-            (*if !equal then
-                Array.iter (fun (item1:Type) ->
-                    equal := !equal && (Array.tryFind(fun (item2:Type) ->
-                                        item1 = item2) oth.MetadataAffectingResult).IsSome) this.MetadataAffectingResult*)
-            !equal
+        base.Equals(o) && (o :? StepProcessorConfiguration) && (this.Step = (o :?> StepProcessorConfiguration).Step)
+
     override this.GetHashCode() =
-        let depString = this.Dependencies |> String.concat ";"
-        let befString = this.Before |> String.concat ";"
-        this.Type.GetHashCode() + this.ID.GetHashCode() + this.Step.GetHashCode() + depString.GetHashCode() + befString.GetHashCode()
+        base.GetHashCode() + this.Step.GetHashCode()
 
 ///
 ///<summary>
 ///Configuration of a type handler
 ///</summary>
 ///
-type TypeHandlerConfiguration(i:string, t:Type, ?dependencies, ?before: string array) =
-    ///
-    ///<summary>
-    ///Type handler ID
-    ///</summary>
-    ///
-    member val ID = i with get
-    ///
-    ///<summary>
-    ///The type handler dependencies
-    ///</summary>
-    ///
-    member val Dependencies = if dependencies.IsSome then dependencies.Value else [||] with get
-    ///
-    ///<summary>
-    ///The set of type handlers that must taken into account only is this one is not able to handle a type
-    ///</summary>
-    ///
-    member val Before = if before.IsSome then before.Value else [||] with get
-    ///
-    ///<summary>
-    ///The runtime .NET type of the step processor
-    ///</summary>
-    ///
-    member val Type = t with get
-    member internal this.ToXml() =
-        let el = new XElement(
-                    XName.Get(this.GetType().Name),
-                    new XAttribute(XName.Get("ID"), this.ID),
-                    new XAttribute(XName.Get("Type"), this.Type),
-                    new XElement(XName.Get("Dependencies"),
-                        Array.ofSeq(seq {
-                            for item in this.Dependencies do
-                                yield XElement(XName.Get("Item"), XAttribute(XName.Get("ID"), item))
-                        })),
-                    new XElement(XName.Get("Before"),
-                        Array.ofSeq(seq {
-                            for item in this.Before do
-                                yield XElement(XName.Get("Item"), XAttribute(XName.Get("ID"), item))
-                        })))
-        el
+type TypeHandlerConfiguration(i:string, t:Type, dependencies, before: string array) =
+    inherit ComponentConfiguration(i, t, dependencies, before, [||])
     static member internal FromXml(el:XElement, a:Assembly) =
-        let deps = List<string>()
-        let bef = List<string>()
-        for d in el.Elements(XName.Get("Dependencies")) do
-            for item in d.Elements(XName.Get("Item")) do
-                deps.Add(item.Attribute(XName.Get("ID")).Value)
-        for d in el.Elements(XName.Get("Before")) do
-            for item in d.Elements(XName.Get("Item")) do
-                bef.Add(item.Attribute(XName.Get("ID")).Value)
-        TypeHandlerConfiguration(el.Attribute(XName.Get("ID")).Value, a.GetType(el.Attribute(XName.Get("Type")).Value), deps.ToArray(), bef.ToArray())   
-                
+        let comp = ComponentConfiguration.FromXml(el, a)
+        TypeHandlerConfiguration(comp.ID,
+                                 comp.Type, 
+                                 comp.Dependencies, comp.Before)
+        
 ///
 ///<summary>
 ///Configuration of a compiler source, which is a set of steps, processors and type handlers contained to the same assembly
@@ -301,8 +236,9 @@ type TypeHandlerConfiguration(i:string, t:Type, ?dependencies, ?before: string a
 ///
 type SourceConfiguration(src: ComponentSource, 
                          th: TypeHandlerConfiguration array, 
-                         s: StepConfiguration array, 
-                         p: StepProcessorConfiguration array) =     
+                         sr: StrideConfiguration array, 
+                         st: StepConfiguration array, 
+                         sp: StepProcessorConfiguration array) =     
     ///
     ///<summary>
     ///The path of the source file or the instance of the source assembly
@@ -328,13 +264,19 @@ type SourceConfiguration(src: ComponentSource,
     ///The set of configurations of steps
     ///</summary>
     ///
-    member val Steps = s with get
+    member val Strides = sr with get
+    ///
+    ///<summary>
+    ///The set of configurations of steps
+    ///</summary>
+    ///
+    member val Steps = st with get
     ///
     ///<summary>
     ///The set of configurations of step processors
     ///</summary>
     ///
-    member val StepProcessors = p with get    
+    member val StepProcessors = sp with get    
     ///
     ///<summary>
     ///Whether this source is explicit or not
@@ -347,7 +289,7 @@ type SourceConfiguration(src: ComponentSource,
     ///
     member this.IsExplicit
         with get() =
-            (this.TypeHandlers.Length > 0) || (this.Steps.Length > 0) || (this.StepProcessors.Length > 0)
+            (this.TypeHandlers.Length > 0)  || (this.Strides.Length > 0) || (this.Steps.Length > 0) || (this.StepProcessors.Length > 0)
             
     member internal this.IsDefault 
         with get() =
@@ -363,7 +305,7 @@ type SourceConfiguration(src: ComponentSource,
     ///</summary>
     ///
     new(src: ComponentSource) = 
-        SourceConfiguration(src, [||], [||], [||])
+        SourceConfiguration(src, [||], [||], [||], [||])
 
     member internal this.ToXml() =
         let el = new XElement(XName.Get(this.GetType().Name),
@@ -377,6 +319,11 @@ type SourceConfiguration(src: ComponentSource,
                         new XElement(XName.Get("TypeHandlers"), 
                             Array.ofSeq(seq {
                                 for item in this.TypeHandlers do
+                                    yield item.ToXml()
+                            })),
+                        new XElement(XName.Get("Strides"), 
+                            Array.ofSeq(seq {
+                                for item in this.Strides do
                                     yield item.ToXml()
                             })),
                         new XElement(XName.Get("Steps"), 
@@ -411,20 +358,24 @@ type SourceConfiguration(src: ComponentSource,
         // Check if explicit or implicit
         if (el.Element(XName.Get("Components")) <> null) then
             let th = new List<TypeHandlerConfiguration>()
-            let s = new List<StepConfiguration>()
+            let sr = new List<StrideConfiguration>()
+            let st = new List<StepConfiguration>()
             let sp = new List<StepProcessorConfiguration>()
 
             if (el.Element(XName.Get("Components")).Element(XName.Get("TypeHandlers")) <> null) then
                 for item in el.Element(XName.Get("Components")).Element(XName.Get("TypeHandlers")).Elements() do
                     th.Add(TypeHandlerConfiguration.FromXml(item, assembly))
+            if (el.Element(XName.Get("Components")).Element(XName.Get("Strides")) <> null) then
+                for item in el.Element(XName.Get("Components")).Element(XName.Get("Strides")).Elements() do
+                    sr.Add(StrideConfiguration.FromXml(item, assembly))
             if (el.Element(XName.Get("Components")).Element(XName.Get("Steps")) <> null) then
                 for item in el.Element(XName.Get("Components")).Element(XName.Get("Steps")).Elements() do
-                    s.Add(StepConfiguration.FromXml(item, assembly))
+                    st.Add(StepConfiguration.FromXml(item, assembly))
             if (el.Element(XName.Get("Components")).Element(XName.Get("StepsProcessors")) <> null) then
                 for item in el.Element(XName.Get("Components")).Element(XName.Get("StepProcessors")).Elements() do
                     sp.Add(StepProcessorConfiguration.FromXml(item, assembly))
             
-            let conf = new SourceConfiguration(source, th.ToArray(), s.ToArray(), sp.ToArray())
+            let conf = new SourceConfiguration(source, th.ToArray(), sr.ToArray(), st.ToArray(), sp.ToArray())
             conf
         else
             let conf = new SourceConfiguration(source)
@@ -441,7 +392,8 @@ type SourceConfiguration(src: ComponentSource,
 
             // Load assembly and analyze content
             let th = new List<TypeHandlerConfiguration>()
-            let s = new List<StepConfiguration>()
+            let sr = new List<StrideConfiguration>()
+            let st = new List<StepConfiguration>()
             let sp = new List<StepProcessorConfiguration>()
             for t in assembly.GetTypes() do
                 let dep = List<string>()
@@ -458,17 +410,30 @@ type SourceConfiguration(src: ComponentSource,
                 dep.Clear()
                 bef.Clear()
                 
-
-                let sAttribute = t.GetCustomAttribute<StepAttribute>()
-                if sAttribute <> null then
-                    for item in sAttribute.Before do
+                let srAttribute = t.GetCustomAttribute<StrideAttribute>()
+                if srAttribute <> null then
+                    for item in srAttribute.Before do
                         bef.Add(item)
-                    for item in sAttribute.Dependencies do
+                    for item in srAttribute.Dependencies do
                         dep.Add(item)
                     for item in t.GetCustomAttributes<UseMetadataAttribute>() do
                         meta.Add(item.MetadataType, 
                                     Activator.CreateInstance(item.Comparer) :?> MetadataComparer)
-                    s.Add(StepConfiguration(sAttribute.ID, t, dep.ToArray(), bef.ToArray(), meta.ToArray()))
+                    sr.Add(StrideConfiguration(srAttribute.ID, t, dep.ToArray(), bef.ToArray(), meta.ToArray()))
+                dep.Clear()
+                bef.Clear()
+                meta.Clear()
+
+                let stAttribute = t.GetCustomAttribute<StepAttribute>()
+                if stAttribute <> null then
+                    for item in stAttribute.Before do
+                        bef.Add(item)
+                    for item in stAttribute.Dependencies do
+                        dep.Add(item)
+                    for item in t.GetCustomAttributes<UseMetadataAttribute>() do
+                        meta.Add(item.MetadataType, 
+                                    Activator.CreateInstance(item.Comparer) :?> MetadataComparer)
+                    st.Add(StepConfiguration(stAttribute.ID, stAttribute.Stride, t, dep.ToArray(), bef.ToArray(), meta.ToArray()))
                 dep.Clear()
                 bef.Clear()
                 meta.Clear()
@@ -485,7 +450,7 @@ type SourceConfiguration(src: ComponentSource,
                     sp.Add(StepProcessorConfiguration(spAttribute.ID, spAttribute.Step, t, dep.ToArray(), bef.ToArray(), meta.ToArray()))
 
             // Return
-            SourceConfiguration(this.Source, th.ToArray(), s.ToArray(), sp.ToArray())
+            SourceConfiguration(this.Source, th.ToArray(), sr.ToArray(), st.ToArray(), sp.ToArray())
         else
             this  
              
@@ -495,7 +460,7 @@ type SourceConfiguration(src: ComponentSource,
 ///</summary>
 ///
 [<AllowNullLiteral>]
-type PipelineConfiguration(defSteps, sources: SourceConfiguration array) =
+type PipelineConfiguration(defStrides, sources: SourceConfiguration array) =
     ///
     ///<summary>
     ///The set of components sources
@@ -522,35 +487,55 @@ type PipelineConfiguration(defSteps, sources: SourceConfiguration array) =
     ///Instantiates a configuration with explicit stepe, processors and type handlers
     ///</summary>
     ///
-    new(defSteps, steps:ICompilerStep list, handlers:TypeHandler list) =
-        let sourceDic = new Dictionary<Assembly, List<TypeHandlerConfiguration> * List<StepConfiguration> * List<StepProcessorConfiguration>>()
+    new(defStrides, strides:ICompilerStride list, handlers:TypeHandler list) =
+        let sourceDic = new Dictionary<Assembly, List<TypeHandlerConfiguration> * List<StrideConfiguration> * List<StepConfiguration> * List<StepProcessorConfiguration>>()
         // Fake ids to produce dependency
-        let mutable stepID = 0
-        for i = 0 to steps.Length do 
-            let step = steps.[i]
-            let mutable stepProcID = 0
-            // Build processors configuration
-            for i = 0 to step.Processors.Length do
-                let proc = step.Processors.[i]
-                let assembly = proc.GetType().Assembly
-                if not (sourceDic.ContainsKey(assembly)) then
-                    sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
-                let thc, sc, spc = sourceDic.[assembly]
-                spc.Add(new StepProcessorConfiguration("sp" + stepProcID.ToString(),
-                                                        "s" + stepID.ToString(), 
-                                                        proc.GetType(), 
-                                                        if stepProcID = 0 then [||] else [| "sp" + (stepProcID - 1).ToString() |]))
-                stepProcID <- stepProcID + 1
+        let mutable strideID = 0
+        for strideIdx = 0 to strides.Length do
+            let stride = strides.[strideIdx]
+            let mutable stepID = 0
+            for stepIdx = 0 to stride.Steps.Length do
+                let step = stride.Steps.[stepIdx]
+                let mutable stepProcID = 0
+                // Build processors configuration
+                for i = 0 to step.Processors.Length do
+                    let proc = step.Processors.[i]
+                    let assembly = proc.GetType().Assembly
+                    if not (sourceDic.ContainsKey(assembly)) then
+                        sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StrideConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
+                    let _, _, _, spc = sourceDic.[assembly]
+                    spc.Add(new StepProcessorConfiguration("sp" + stepProcID.ToString(),
+                                                            "s" + stepID.ToString(), 
+                                                            proc.GetType(), 
+                                                            (if stepProcID = 0 then [||] else [| "sp" + (stepProcID - 1).ToString() |]),
+                                                            [||],
+                                                            [||]))
+                    stepProcID <- stepProcID + 1
 
-            // Add step configuration
-            let assembly = step.GetType().Assembly
+                // Add step configuration
+                let assembly = step.GetType().Assembly
+                if not (sourceDic.ContainsKey(assembly)) then
+                    sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StrideConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
+                let _, _, sc, _ = sourceDic.[assembly]
+                sc.Add(new StepConfiguration("s" + stepID.ToString(),
+                                             "st" + strideID.ToString(),
+                                             step.GetType(), 
+                                             (if stepID = 0 then [||] else [| "s" + (stepProcID - 1).ToString() |]),
+                                             [||],
+                                             [||]))
+                stepID <- stepID + 1
+            
+            // Add stride configuration
+            let assembly = stride.GetType().Assembly
             if not (sourceDic.ContainsKey(assembly)) then
-                sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
-            let thc, sc, spc = sourceDic.[assembly]
-            sc.Add(new StepConfiguration("s" + stepID.ToString(),
-                                         step.GetType(), 
-                                         if stepID = 0 then [||] else [| "s" + (stepProcID - 1).ToString() |]))
-            stepID <- stepID + 1
+                sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StrideConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
+            let _, stc, _, _ = sourceDic.[assembly]
+            stc.Add(new StrideConfiguration("st" + strideID.ToString(),
+                                            stride.GetType(),
+                                            (if strideID = 0 then [||] else [| "st" + (strideID - 1).ToString() |]),
+                                            [||],
+                                            [||]))
+            strideID <- strideID + 1
 
         // Type handlers
         let mutable typeHandlerID = 0
@@ -558,18 +543,19 @@ type PipelineConfiguration(defSteps, sources: SourceConfiguration array) =
             let th = handlers.[i]
             let assembly = th.GetType().Assembly
             if not (sourceDic.ContainsKey(assembly)) then
-                sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
-            let thc, sc, spc = sourceDic.[assembly]
+                sourceDic.Add(assembly, (new List<TypeHandlerConfiguration>(), new List<StrideConfiguration>(), new List<StepConfiguration>(), new List<StepProcessorConfiguration>()))
+            let thc, _, _, _ = sourceDic.[assembly]
             thc.Add(new TypeHandlerConfiguration("th" + typeHandlerID.ToString(), 
                                                  th.GetType(), 
-                                                 if typeHandlerID = 0 then [||] else [| "th" + (typeHandlerID - 1).ToString() |]))
+                                                 (if typeHandlerID = 0 then [||] else [| "th" + (typeHandlerID - 1).ToString() |]),
+                                                 [||]))
             typeHandlerID <- typeHandlerID + 1
 
         // Create assembly based configuration
-        new PipelineConfiguration(defSteps, Array.ofSeq(seq {
+        new PipelineConfiguration(defStrides, Array.ofSeq(seq {
                                                                     for item in sourceDic do
-                                                                        let thc, sc, spc = item.Value                                                                        
-                                                                        yield new SourceConfiguration(AssemblySource(item.Key), thc.ToArray(), sc.ToArray(), spc.ToArray())     
+                                                                        let thc, sr, st, sp = item.Value                                                                        
+                                                                        yield new SourceConfiguration(AssemblySource(item.Key), thc.ToArray(), sr.ToArray(), st.ToArray(), sp.ToArray())     
                                                                }))
         
     ///
@@ -592,11 +578,11 @@ type PipelineConfiguration(defSteps, sources: SourceConfiguration array) =
     ///
     member this.LoadDefaultSteps 
         with get() = 
-            defSteps && (not this.IsDefault)
+            defStrides && (not this.IsDefault)
 
     member internal this.ToXml() =
         let el = new XElement(XName.Get(this.GetType().Name),
-                    new XAttribute(XName.Get("LoadDefaultSteps"), this.LoadDefaultSteps),
+                    new XAttribute(XName.Get("LoadDefaultComponents"), this.LoadDefaultSteps),
                     new XElement(XName.Get("Sources"),
                         Array.ofSeq(seq {
                             for item in this.Sources do
@@ -607,8 +593,8 @@ type PipelineConfiguration(defSteps, sources: SourceConfiguration array) =
         
     static member internal FromXml(doc: XDocument, srcRoot: string) =
         let sources = new List<SourceConfiguration>()
-        let loadDefault = if(doc.Root.Attribute(XName.Get("LoadDefaultSteps")) <> null) then
-                            bool.Parse(doc.Root.Attribute(XName.Get("LoadDefaultSteps")).Value)
+        let loadDefault = if(doc.Root.Attribute(XName.Get("LoadDefaultComponents")) <> null) then
+                            bool.Parse(doc.Root.Attribute(XName.Get("LoadDefaultComponents")).Value)
                           else
                              false
         for s in doc.Root.Elements(XName.Get("Sources")) do

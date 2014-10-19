@@ -1,17 +1,17 @@
-﻿namespace FSCL.Compiler.ModulePreprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.ModulePreprocessing
 
 open System
 open System.Reflection
 open System.Collections.Generic
 open Microsoft.FSharp.Quotations
 open FSCL.Compiler
-open FSCL.Compiler.Util.VerboseCompilationUtil
+
 
 [<assembly:DefaultComponentAssembly>]
 do()
 
-[<Step("FSCL_MODULE_PREPROCESSING_STEP", 
-      Dependencies = [| "FSCL_MODULE_PARSING_STEP" |])>]
+[<Step("FSCL_MODULE_PREPROCESSING_STEP",
+       "FSCL_MAIN_STRIDE")>]
 type ModulePreprocessingStep(tm: TypeManager,
                              processors: ICompilerStepProcessor list) = 
     inherit CompilerStep<KernelModule, KernelModule>(tm, processors)
@@ -21,12 +21,8 @@ type ModulePreprocessingStep(tm: TypeManager,
             p.Execute(km, this, opts) |> ignore
         km
 
-    override this.Run(data, opts) =
-        let verb = StartVerboseStep(this, opts)
-
+    override this.Run(data, stride, opts) =
         let r = ContinueCompilation(this.Process(data, opts))
-
-        StopVerboseStep(verb)
         r
 
         

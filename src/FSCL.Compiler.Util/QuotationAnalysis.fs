@@ -17,6 +17,17 @@ open FSCL
 open System.Collections.ObjectModel
 
 module QuotationAnalysis =
+    let rec private GetMethodInfoFromExpr(e:Expr) =
+        match e with
+        | Patterns.Call(o, mi, a) ->
+            Some(mi)
+        | Patterns.Lambda(v, e) ->
+            GetMethodInfoFromExpr(e)
+        | Patterns.Let(v, va, e) ->
+            GetMethodInfoFromExpr(e)
+        | _ ->
+            None
+
     let private ParseKernelMetadataFunctions(expr, 
                                              kernelAttrs: KernelMetaCollection,
                                              returnAttrs: ParamMetaCollection) =
@@ -313,55 +324,46 @@ module QuotationAnalysis =
         | _ ->
             None
                 
-    let rec GetKernelFromCall(e) =                
-        let expr, kernelAttrs, returnAttrs = ParseKernelMetadata(e)
+            (*
+        | DerivedPatterns.SpecificCall <@ (|>) @> (e, tl, a) ->
+            let methodInfo, lambda = GetComputationalLambdaOrReflectedMethodInfo(a.[1])
 
-        match expr with
-        | Patterns.Call (e, mi, a) ->
-            match mi with
-            | DerivedPatterns.MethodWithReflectedDefinition(body) -> 
-                // Fix: check if Lambda(this, body) for instance methods
-                let b = match body with
-                        | Patterns.Lambda(v, b) ->
-                            if (v.Name = "this") then
-                                b
-                            else
-                                body
-                        | _ ->
-                            body               
-                // Extract parameters vars
-                match GetCurriedOrTupledArgs(b) with
-                | Some(paramVars) ->                    
-                    MergeWithStaticKernelMeta(kernelAttrs, returnAttrs, mi)
-                    let methodParams = mi.GetParameters()
-                    let parameters = seq {
-                                        for p in methodParams do
-                                            if p.ParameterType <> typeof<WorkItemInfo> then
-                                               yield p
-                                     } |> Seq.toList
-                    let pVars = seq {
-                                        for p in paramVars do
-                                            if p.Type <> typeof<WorkItemInfo> then
-                                               yield p
-                                     } |> Seq.toList
-                    let workItemInfoArg = 
-                        List.tryFind (fun (it:Expr) ->
-                                        it.Type = typeof<WorkItemInfo>) a
-                    let attrs = new List<ParamMetaCollection>()
-                    let args = new List<Expr>()
-                    for i = 0 to parameters.Length - 1 do
-                        let paramAttrs = new ParamMetaCollection()
-                        let cleanArgs, paramAttrs = ParseParameterMetadata(a.[i])
-                        MergeWithStaticParameterMeta(paramAttrs, parameters.[i])
-                        attrs.Add(paramAttrs)
-                        args.Add(cleanArgs)
-                    Some(mi, parameters, pVars, b, List.ofSeq args, workItemInfoArg, kernelAttrs, returnAttrs, attrs)
-                | _ ->
-                    None
-            | _ ->
-                None
+            if lambda.IsSome then
+                Expr.Application(a.[1], a.[0])
+            else 
+                match methodInfo.Value with
+                | o, mi, li, v, vl ->
+                    let processedList = li |> List.mapi(fun i el ->
+                        if (i < li.Length - 1) then
+                            el
+                        else
+                            a.Head)
+                    if o.IsSome then
+                        Expr.Call(o.Value, mi, processedList)
+                    else
+                        Expr.Call(mi, processedList)
+                        
+        | DerivedPatterns.SpecificCall <@ (||>) @> (e, tl, a) ->
+            let methodInfo, lambda = GetComputationalLambdaOrReflectedMethodInfo(a.[2])
+
+            if lambda.IsSome then
+                Expr.Application(
+                    Expr.Application(a.[2], a.[0]), a.[1])
+            else 
+                match methodInfo.Value with
+                | o, mi, li, v, vl ->
+                    let processedList = li |> List.mapi(fun i el ->
+                        if (i < li.Length - 2) then
+                            el
+                        else
+                            a.)                        
+                    if o.IsSome then
+                        Expr.Call(o.Value, mi, processedList)
+                    else
+                        Expr.Call(mi, processedList)
         | _ ->
             None
+            *)
             
     let rec GetKernelFromMethodInfo(mi: MethodInfo) =                    
         match mi with

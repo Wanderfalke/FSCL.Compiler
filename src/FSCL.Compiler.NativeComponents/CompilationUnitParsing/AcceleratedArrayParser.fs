@@ -3,7 +3,7 @@
 open FSCL.Compiler
 open FSCL.Language
 open FSCL.Compiler.Util
-open FSCL.Compiler.ModuleParsing
+open FSCL.Compiler.NativeComponents.ParsingStride.CompilationUnitParsing
 open System.Collections.Generic
 open System.Reflection
 open System.Reflection.Emit
@@ -12,10 +12,10 @@ open System
 open AcceleratedCollectionUtil
 
 [<StepProcessor("FSCL_ACCELERATED_ARRAY_MODULE_PARSING_PROCESSOR", 
-                "FSCL_MODULE_PARSING_STEP")>]
+                "FSCL_CU_PARSING_STEP")>]
 [<UseMetadata(typeof<DeviceTypeAttribute>, typeof<DeviceTypeMetadataComparer>)>] 
 type AcceleratedArrayParser() = 
-    inherit ModuleParsingProcessor()
+    inherit CompilationUnitParsingProcessor()
     
     // The List module type        
     let listModuleType = FilterCall(<@ Array.map @>, fun(e, mi, a) -> mi.DeclaringType).Value
@@ -32,10 +32,11 @@ type AcceleratedArrayParser() =
         handlers.Add(FilterCall(<@ Array.rev @>, fun(e, mi, a) -> mi.GetGenericMethodDefinition()).Value, new AcceleratedArrayReverseHandler())
             
     override this.Run(o, s, opts) =
-        let step = s :?> ModuleParsingStep
-        if o :? Expr then
+        let step = s :?> CompilationUnitParsingStep
+        let e, isRoot = o :?> obj * bool
+        if e :? Expr then
             // Lift and get potential kernel attributes
-            let expr, kMeta, rMeta = QuotationAnalysis.ParseKernelMetadata(o :?> Expr)
+            let expr, kMeta, rMeta = QuotationAnalysis.ParseKernelMetadata(e :?> Expr)
 
             // Filter out potential Lambda/Let (if the function is referenced, not applied)
             match QuotationAnalysis.ParseCall(expr) with
@@ -57,7 +58,7 @@ type AcceleratedArrayParser() =
                         let finalMeta = step.ProcessMeta(kMeta, rMeta, pmeta, metaFilterInfo)
 
                         // Run the appropriate handler
-                        handlers.[methodInfo.GetGenericMethodDefinition()].Process(methodInfo, List.ofSeq cleanArgs, expr, finalMeta, step)
+                        handlers.[methodInfo.GetGenericMethodDefinition()].Process(methodInfo, List.ofSeq cleanArgs, expr, finalMeta, step, isRoot)
                     else
                         None
                 else

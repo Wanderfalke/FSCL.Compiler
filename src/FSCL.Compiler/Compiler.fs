@@ -5,39 +5,29 @@ open System.IO
 open System.Reflection
 open FSCL.Compiler
 open FSCL.Compiler.Configuration
-open FSCL.Compiler.ModuleParsing
-open FSCL.Compiler.ModulePreprocessing
-open FSCL.Compiler.ModuleCodegen
-open FSCL.Compiler.FunctionPreprocessing
-open FSCL.Compiler.FunctionCodegen
-open FSCL.Compiler.FunctionTransformation
-open FSCL.Compiler.FunctionPostprocessing
+open FSCL.Compiler.NativeComponents.MainStride
+open FSCL.Compiler.NativeComponents.ParsingStride
 open FSCL.Compiler.AcceleratedCollections
-open FSCL.Compiler.Types
+open FSCL.Compiler.NativeComponents.TypeHandlers
 open System.Collections.Generic
-open FSCL.Compiler.Util.VerboseCompilationUtil
+
 ///
 ///<summary>
 ///The FSCL compiler
 ///</summary>
 ///
+                
 [<AllowNullLiteral>]
 type Compiler = 
     inherit Pipeline
-
+    
     static member DefaultConfigurationRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FSCL.Compiler")
     static member DefaultConfigurationComponentsFolder = "Components"
     static member DefaultConfigurationComponentsRoot = Path.Combine(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder)
 
     static member private defComponentsAssemply = 
-        [| typeof<FunctionPreprocessingStep>; 
-           typeof<FunctionTransformationStep>; 
-           typeof<FunctionCodegenStep>; 
-           typeof<ModuleParsingStep>; 
-           typeof<ModulePreprocessingStep>; 
-           typeof<ModuleCodegenStep>;
-           typeof<FunctionPostprocessingStep>;
-           typeof<AcceleratedArrayParser>;
+        [| typeof<ParsingStride>; 
+           typeof<MainStride>; 
            typeof<DefaultTypeHandler> |]
            
     ///
@@ -54,7 +44,9 @@ type Compiler =
     ///</remarks>
     ///
     new() = 
-        { inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply) }
+        { 
+            inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply)             
+        }
     
     ///
     ///<summary>
@@ -79,24 +71,25 @@ type Compiler =
     new(conf: PipelineConfiguration) =
         { inherit Pipeline(Compiler.DefaultConfigurationRoot, Compiler.DefaultConfigurationComponentsFolder, Compiler.defComponentsAssemply, conf) }
 
-    member this.Compile(input, opts) =
-        let verb = StartVerboseCompiler(this.StepsCount, opts)
+    member this.Compile(input, opts: Dictionary<string, obj>) =
+        if not (opts.ContainsKey(CompilerOptions.UseCache)) then
+            opts.Add(CompilerOptions.UseCache, this.Cache)
         let r = this.Run(input, opts)
-        StopVerboseCompiler(verb)
         r
         
     member this.Compile(input, [<ParamArray>] args: (string * obj)[]) =
         let opts = new Dictionary<string, obj>()
-        let verb = StartVerboseCompiler(this.StepsCount, opts)
         for key, value in args do
             if not (opts.ContainsKey(key)) then
                 opts.Add(key, value)
             else
                 opts.[key] <- value
+        if not (opts.ContainsKey(CompilerOptions.UseCache)) then
+            opts.Add(CompilerOptions.UseCache, this.Cache)
         let r = this.Run(input, opts)
-        StopVerboseCompiler(verb)
         r
         
     member this.Compile(input) =
-        this.Compile(input, new Dictionary<string, obj>())
+        this.Compile(input, (CompilerOptions.UseCache, this.Cache :> obj))
     
+    member this.Cache = new CompilerCache(this.IsInvariantToMetaCollection, fun(a,b) -> true)

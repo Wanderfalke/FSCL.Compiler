@@ -1,4 +1,4 @@
-﻿namespace FSCL.Compiler.FunctionPostprocessing
+﻿namespace FSCL.Compiler.NativeComponents.MainStride.FunctionPostprocessing
 
 open FSCL.Compiler
 open System.Collections.Generic
@@ -12,7 +12,7 @@ open System
 type ParametersAccessAnalysis() =        
     inherit FunctionPostprocessingProcessor()
     
-    let DiscoverArrayParametersReferences(a: Expr, kInfo: FunctionInfo) =
+    let DiscoverArrayParametersReferences(a: Expr, kInfo: KernelUtilityFunctionInfo) =
         let rec discoverReferencesInternal(e: Expr, parent: Expr option) =
             match e with
             | ExprShape.ShapeVar(v) ->

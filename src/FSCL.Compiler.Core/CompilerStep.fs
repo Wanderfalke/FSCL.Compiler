@@ -63,8 +63,63 @@ and [<AbstractClass>] ICompilerStep(tm: TypeManager, processors:ICompilerStepPro
     ///<param name="obj">The input of the step</param>
     ///<returns>The output produced by this step</returns>
     /// 
+    abstract member Execute: obj * ICompilerStride * IReadOnlyDictionary<string, obj> -> CompilerStepResult
+   
+///
+///<summary>
+///The base type of every compiler step processor
+///</summary>
+///<remarks>
+///Developers of step processors should not inherit from this class but from the generic CompilerStepProcessor and provide an implementation to the method "Run"
+///</remarks>
+///
+and [<AbstractClass>] ICompilerStride(tm: TypeManager, steps:ICompilerStep list) = 
+    ///
+    ///<summary>
+    ///The compiler type manager
+    ///</summary>
+    /// 
+    member val TypeManager = tm with get    
+    ///
+    ///<summary>
+    ///The set of step processors
+    ///</summary>
+    /// 
+    member val Steps = steps with get
+    ///
+    ///<summary>
+    ///The method to be called to execute the processor
+    ///</summary>
+    ///<remarks>
+    ///This method looks for a method called "Run" in the runtime time definition of this instance and invokes it using the provided parameter
+    ///</remarks>
+    ///<param name="obj">The input of the processor</param>
+    ///<param name="owner">The owner step</param>
+    ///<returns>The output produced by this processor</returns>
+    /// 
     abstract member Execute: obj * IReadOnlyDictionary<string, obj> -> CompilerStepResult
-        
+     
+///
+///<summary>
+///The generic base class of compiler steps
+///</summary>
+///<typeparam name="T">The type of the step input</typeparam>
+///<typeparam name="U">The type of the step output</typeparam>
+/// 
+[<AbstractClass>]
+type CompilerStride<'T,'U>(tm, steps) =
+    inherit ICompilerStride(tm, steps)    
+    ///
+    ///<summary>
+    ///The abstract method that every step must implement to define the behavior of the step
+    ///</summary>
+    ///<param name="param0">An instance of type 'T</param>
+    ///<returns>An instance of type 'U</returns>
+    /// 
+    abstract member Run: 'T * IReadOnlyDictionary<string, obj> -> CompilerStepResult
+    
+    override this.Execute(obj, opts) =        
+        this.Run(obj :?> 'T, opts)
         
 ///
 ///<summary>
@@ -83,10 +138,10 @@ type CompilerStep<'T,'U>(tm, processors) =
     ///<param name="param0">An instance of type 'T</param>
     ///<returns>An instance of type 'U</returns>
     /// 
-    abstract member Run: 'T * IReadOnlyDictionary<string, obj> -> CompilerStepResult
+    abstract member Run: 'T * ICompilerStride * IReadOnlyDictionary<string, obj> -> CompilerStepResult
     
-    override this.Execute(obj, opts) =        
-        this.Run(obj :?> 'T, opts)
+    override this.Execute(obj, stride, opts) =        
+        this.Run(obj :?> 'T, stride, opts) 
     
 ///
 ///<summary>
@@ -95,9 +150,6 @@ type CompilerStep<'T,'U>(tm, processors) =
 /// 
 type [<AbstractClass>] CompilerStepProcessor<'T,'U>() =
     inherit ICompilerStepProcessor()
-
-    override this.Execute(obj, step, opts) =
-        this.Run(obj :?> 'T, step, opts) :> obj
     ///
     ///<summary>
     ///The abstract method that every step processors must implement to define the behavior of the processor
@@ -107,6 +159,9 @@ type [<AbstractClass>] CompilerStepProcessor<'T,'U>() =
     ///<returns>An instance of type 'U</returns>
     /// 
     abstract member Run: 'T * ICompilerStep * IReadOnlyDictionary<string, obj> -> 'U
+
+    override this.Execute(obj, step, opts) =
+        this.Run(obj :?> 'T, step, opts) :> obj
     
 ///
 ///<summary>
@@ -130,16 +185,35 @@ type [<AbstractClass>] CompilerStepProcessor<'T>() =
     
 ///
 ///<summary>
-///Alias of unit
+///The type of the processors of the module parsing step. Alias of CompilerStepProcessor&lt;obj, KernelModule option&gt;
 ///</summary>
 /// 
-type NoResult = unit
+type ParsingStride = CompilerStride<obj, ICompilationUnit>
 ///
 ///<summary>
 ///The type of the processors of the module parsing step. Alias of CompilerStepProcessor&lt;obj, KernelModule option&gt;
 ///</summary>
 /// 
-type ModuleParsingProcessor = CompilerStepProcessor<obj, KernelModule option>
+type MainStride = CompilerStride<ICompilationUnit, ICompilationUnit>
+///
+///<summary>
+///The type of the processors of the module parsing step. Alias of CompilerStepProcessor&lt;obj, KernelModule option&gt;
+///</summary>
+/// 
+type PostStride = CompilerStride<ICompilationUnit, ICompilationUnit>
+
+///
+///<summary>
+///The type of the processors of the module parsing step. Alias of CompilerStepProcessor&lt;obj, KernelModule option&gt;
+///</summary>
+/// 
+type CompilationUnitParsingProcessor = CompilerStepProcessor<obj, ICompilationFlowGraphNode option>
+///
+///<summary>
+///The type of the processors of the module parsing step. Alias of CompilerStepProcessor&lt;obj, KernelModule option&gt;
+///</summary>
+/// 
+type CompilationUnitPpostprocessingProcessor = CompilerStepProcessor<ICompilationUnit>
 ///
 ///<summary>
 ///The type of the metadata processors of the module parsing step. 
@@ -157,13 +231,13 @@ type ModulePreprocessingProcessor = CompilerStepProcessor<KernelModule>
 ///The type of the processors of the function preprocessing step. Alias of CompilerStepProcessor&lt;FunctionInfo * ConnectionsWrapper, ConnectionWrapper&gt;
 ///</summary>
 /// 
-type FunctionPreprocessingProcessor = CompilerStepProcessor<FunctionInfo>
+type FunctionPreprocessingProcessor = CompilerStepProcessor<KernelUtilityFunctionInfo>
 ///
 ///<summary>
 ///The type of the processors of the function postprocessing step. Alias of CompilerStepProcessor&lt;FunctionInfo * ConnectionsWrapper, ConnectionWrapper&gt;
 ///</summary>
 /// 
-type FunctionPostprocessingProcessor = CompilerStepProcessor<FunctionInfo>
+type FunctionPostprocessingProcessor = CompilerStepProcessor<KernelUtilityFunctionInfo>
 ///
 ///<summary>
 ///The type of the processors of the function transformation step. Alias of CompilerStepProcessor&lt;Expr, Expr&gt;
